@@ -1,4 +1,37 @@
-#############################################################################
+"""
+Title: PromptMule Chat Application
+Author: [Your Name]
+Date: [Current Date]
+Description: A chat application built using the Panel library and the PromptMule API. The application provides a user interface
+            for interacting with a chatbot, searching for similar responses, managing prompt and response history, and analyzing
+            user statistics. It includes features such as chat interaction, prompt searching, data export, user authentication,
+            and data visualization.
+
+Main Components:
+- Imports and Setup
+- Global Variables
+- PromptMule Client
+- UI Components
+- Event Handlers
+- Chat Interface
+- Layout and Tabs
+- Data Visualization
+- User Profile
+- Main Layout and Servable
+
+Dependencies:
+- Panel
+- Pandas
+- Bokeh
+- PromptMule API (pm_chat)
+- scikit-learn
+
+Usage:
+1. Set up the necessary environment variables (PROMPTMULE_PASSWORD, PROMPTMULE_USERNAME) in a .env file.
+2. Run the script to launch the application.
+3. Access the application through the provided URL.
+4. Interact with the chatbot, search for similar responses, manage prompt history, and explore user statistics.
+"""
 import os
 import pandas as pd
 import panel as pn
@@ -6,12 +39,11 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import time
 from collections import Counter
-
 from pm_chat import PromptMuleClient
 from pm_chat.setup_logging import logger
 from bokeh.models import FactorRange
-from bokeh.models import NumeralTickFormatter, PrintfTickFormatter
 from bokeh.plotting import figure
+from bokeh.models import FactorRange
 import numpy as np
 from typing import Tuple, List, Dict, Callable
 
@@ -19,7 +51,6 @@ from typing import Tuple, List, Dict, Callable
 load_dotenv()
 
 # Initialize Panel with the Material Design template and custom styles.
-# pn.extension(template='material', css_files=['materialize.css']) # Ensure materialize.css is a path to your custom CSS if needed
 pn.extension(
     template="material"
 )  # Ensure materialize.css is a path to your custom CSS if needed
@@ -110,15 +141,6 @@ pn.config.raw_css.append(
 
 
 # Define custom CSS for smaller font and cell padding
-# tabulator_css = """
-# .pn-tabulator .tabulator-cell {
-#     font-size: 7px;
-#     white-space: normal;
-#     word-wrap: break-word;
-# }
-# """
-
-# Define custom CSS for smaller font and cell padding
 tabulator_css = """
 .pn-tabulator .tabulator-cell {
     font-size: 12px;  # Adjust the font size as needed
@@ -158,18 +180,6 @@ datetime_range_picker = pn.widgets.DatetimeRangePicker(
 )
 
 
-# Setup for the Tabulator widget
-# response_similarity_table = pn.widgets.Tabulator(
-#     value=df,
-#     height=700,
-#     width=700,
-#     pagination="local",
-#     page_size=10,
-#     selectable=True,
-#     layout="fit_data_fill",
-#     header_filters=True,
-# )
-# Setup for the Tabulator widget
 # Define a custom formatter function to wrap cell content
 def wrap_formatter(cell, formatterParams, onRendered):
     cellValue = cell.getValue()
@@ -177,8 +187,6 @@ def wrap_formatter(cell, formatterParams, onRendered):
         cellValue
     )
 
-
-# columns_to_hide = ["prompt-id", ]
 
 response_similarity_table = pn.widgets.Tabulator(
     value=df,
@@ -191,9 +199,7 @@ response_similarity_table = pn.widgets.Tabulator(
     sizing_mode="stretch_width",  # Add this line to make the table responsive
     header_align="left",  # Align the header text to the left
     theme="materialize",  # Apply the 'midnight' theme
-    # hidden_columns=columns_to_hide,
     formatters={"*": wrap_formatter},  # Apply the custom formatter to all columns
-    # column_max_width={'*': 200},  # Set a maximum width of 200 pixels for all columns
 )
 
 
@@ -209,23 +215,8 @@ prompt_history_table = pn.widgets.Tabulator(
     sizing_mode="stretch_width",  # Add this line to make the table responsive
     header_align="left",  # Align the header text to the left
     theme="materialize",  # Apply the 'midnight' theme
-    # hidden_columns=columns_to_hide,
     formatters={"*": wrap_formatter},  # Apply the custom formatter to all columns
-    # column_max_width={'*': 200},  # Set a maximum width of 200 pixels for all columns
 )
-
-
-# # Setup for the Tabulator widget
-# prompt_history_table = pn.widgets.Tabulator(
-#     value=df,
-#     height=700,
-#     width=700,
-#     pagination="local",
-#     page_size=10,
-#     selectable=True,
-#     layout="fit_data_fill",
-#     header_filters=True,
-# )
 
 
 # Function to update the prompt history table
@@ -380,9 +371,6 @@ def handle_quantity_change(event):
             ]
         )
     else:
-        # prompts_display = "\n\n".join(
-        #     [f"{p['request-time']}: {p['prompt']}" for p in prompts]
-        # )
         update_prompt_history_table(prompts)
 
     # Count how many times each value of a specific key (e.g., 'type') appears
@@ -626,10 +614,6 @@ filename_input = pn.widgets.TextInput(
     name="Filename", value="exported_data", placeholder="Enter filename here"
 )
 
-# export_button = pn.widgets.Button(name="Export to CSV", button_type="primary")
-# export_button.on_click(export_to_csv)
-
-# export_controls = pn.Row(filename_input, export_button)
 
 search_button = pn.widgets.Button(name="Search", button_type="primary")
 search_button.on_click(
@@ -653,10 +637,6 @@ chat_interface = pn.chat.ChatInterface(
     show_clear=False,
     width=800,
     sizing_mode="stretch_width",
-    # widgets=[
-    #     pn.widgets.TextInput(placeholder="Type your prompt here..."),
-    #     pn.widgets.IntSlider(name="Max_Tokens", start=0, end=2000, value=50, step=10),
-    #     ],
 )
 
 # Send a welcome message via the chat interface on app start.
@@ -687,7 +667,7 @@ chat_message.param.watch(log_reaction_changes, "reactions")
 
 
 prompt_quantity_select = pn.widgets.Select(
-    name="Quantity", options=[1, 10, 50, 100, 500], value=10, width=100
+    name="Limit", options=[1, 10, 50, 100, 500], value=10, width=100
 )
 
 # Event listener for changes in the quantity select dropdown.
@@ -703,9 +683,9 @@ datetime_range_picker.param.watch(
 # Trigger the date range change event manually for initial load
 date_range_change_handler({"new": (default_start_date, default_end_date)})
 
-# semantic_score_slider = pn.widgets.FloatSlider(
-#     name="Similarity Percentage", start=0.1, end=1.0, step=0.01, value=0.95
-# )
+semantic_score_slider = pn.widgets.FloatSlider(
+    name="Similarity Percentage", start=0.1, end=1.0, step=0.01, value=0.95
+)
 
 semantic_score_slider = pn.widgets.FloatSlider(
     name="Similarity Percentage",
@@ -716,9 +696,6 @@ semantic_score_slider = pn.widgets.FloatSlider(
     css_classes=["material-slider"],  # Add the CSS class for styling
 )
 
-# export_button = pn.widgets.Button(name="Export to CSV", button_type="primary")
-# export_button.on_click(export_to_csv)
-
 # Define clear section titles
 response_search_title = pn.pane.Markdown(
     "## Response Similarity Search", css_classes=["widget-title"]
@@ -727,25 +704,6 @@ datetime_picker_title = pn.pane.Markdown(
     "### Select Date Range", css_classes=["widget-subtitle"]
 )
 quantity_selection_title = pn.pane.Markdown(css_classes=["widget-subtitle"])
-
-
-# response_layout_left = pn.Column(
-#     response_search_title,
-#      pn.Row(
-#         prompt_search_box,
-#         search_button,
-#         margin=(0, 20, 20, 0),  # Right margin to separate from slider
-#     ),
-#     pn.Row(
-#         semantic_score_slider,
-#         css_classes=["material-row"],
-#         margin=(0, 0, 0, 20),  # Left margin to separate from search controls
-#     ),
-#     "Response Similarity Limit",
-#     prompt_quantity_select,
-#     css_classes=["material-pane"],  # Apply consistent styling
-#     margin=(10, 10, 10, 10),
-# )
 
 response_layout_left = pn.Column(
     response_search_title,
@@ -759,8 +717,12 @@ response_layout_left = pn.Column(
         css_classes=["material-row"],
         margin=(0, 0, 0, 20),  # Left margin to separate from search controls
     ),
-    "Response Similarity Limit",
-    prompt_quantity_select,
+    pn.Row(
+        "Response Similarity",
+        prompt_quantity_select,
+        css_classes=["material-row"],
+        margin=(0, 0, 0, 20),  # Left margin to separate from search controls
+    ),
     css_classes=["material-pane"],  # Apply consistent styling
     margin=(10, 10, 10, 10),
 )
@@ -773,17 +735,7 @@ response_layout_right = pn.Column(
     margin=(10, 10, 10, 10),
 )
 
-# response_similarity_layout = pn.Row(
-#     response_layout_left,  # This is your existing column layout for the prompt history
-#     response_layout_right,  # This is the table displaying the prompts
-#     css_classes=["material-pane"],  # Apply consistent styling
-#     margin=(
-#         10,
-#         10,
-#         10,
-#         10,
-#     ),  # Optional: Adjust the margin as needed for spacing around the row
-# )
+
 initialize_search_for_similar_prompts({"new": ("initalizing")})
 
 # Setup the main layout
@@ -791,12 +743,7 @@ initialize_search_for_similar_prompts({"new": ("initalizing")})
 prompt_history_layout_left = pn.Column(
     datetime_picker_title,
     datetime_range_picker,
-    pn.Row(
-        semantic_score_slider,
-        css_classes=["material-row"],
-        margin=(0, 0, 0, 20),  # Left margin to separate from search controls
-    ),
-    pn.Row("History Limit", prompt_quantity_select),
+    pn.Row("History", prompt_quantity_select),
     css_classes=["material-pane"],  # Apply consistent styling
     margin=(10, 10, 10, 10),
 )
@@ -825,17 +772,6 @@ response_similarity_layout = pn.Row(
     margin=(10, 10, 10, 10),
 )
 
-# prompt_history_layout = pn.Row(
-#     prompt_history_layout_left,  # This is your existing column layout for the prompt history
-#     prompt_history_layout_right,  # This is the table displaying the prompts
-#     css_classes=["material-pane"],  # Apply consistent styling
-#     margin=(
-#         10,
-#         10,
-#         10,
-#         10,
-#     ),  # Optional: Adjust the margin as needed for spacing around the row
-# )
 
 password_input = pn.widgets.PasswordInput(
     name="Password", placeholder="Enter your password here..."
@@ -856,14 +792,6 @@ logout_button.on_click(logout_from_promptmule)
 # Define a function to create a tab layout with consistent styling
 def create_tab_layout(name, content):
     return (name, content)
-
-    # return pn.Column(
-    #     title,
-    #     content,
-    #     css_classes=["material-pane"],  # Apply consistent styling
-    #     sizing_mode="stretch_width",
-    #     margin=(10, 10, 10, 10),
-    # )
 
 
 response_tab = pn.Tabs(response_similarity_layout)
@@ -889,22 +817,7 @@ preference_slider = pn.widgets.FloatSlider(
     name="Preference Control", start=0.1, end=1.0, step=0.01, value=0.95
 )
 
-# Extracting the 'api-keys' list from the client.api_key_list dictionary
-# api_keys_info = promptmule_client.api_key_list['api-keys']
 
-# Generating options for the Select widget: (app-name, api-key)
-# options = [(key_info['app-name'], key_info['api-key']) for key_info in api_keys_info]
-
-# Initialize the Select widget with the options
-# api_key_select = pn.widgets.Select(
-#     name="API-KEY",
-#     options=options,
-#     value=options[0][1] if options else '',  # Default to the first API key's value if available
-#     width=600
-# )
-
-
-# api_key_select.param.watch(on_api_key_change, 'value')
 user_stats_output = promptmule_client.get_user_stats()
 df_user_stats = pd.DataFrame(user_stats_output)
 user_stats_display = pn.widgets.Tabulator(
@@ -973,36 +886,6 @@ p1.title.text_color = "black"
 p1.toolbar.logo = None
 p1.toolbar_location = None
 
-# p1 = figure(width_policy='max', height_policy='max', title='User Conversations: Mapping Prompt Diversity to Response Variety', sizing_mode="stretch_both",name='Use vs. Cache Hits', margin=5)
-# p1.scatter(np.random.randint(1, 1000, size=100),
-#         np.random.randint(1, 1000, size=100))
-# # Customize X axis labels
-# #p1.xaxis.major_label_orientation = "vertical"  # Or use radians, e.g., 1.57 for horizontal
-# p1.yaxis.major_label_text_font_size = "12pt"  # Adjust font size
-# p1.yaxis.major_label_text_color = "navy"  # Adjust font color
-# p1.xaxis.major_label_text_font_size = "12pt"  # Adjust font size
-# p1.xaxis.major_label_text_color = "navy"  # Adjust font color
-
-# Set the x_range to handle categorical data using the unique values from 'app-name'
-# p2 = figure(width_policy='max', height_policy='max', sizing_mode="stretch_both", title='Token Savings per App', x_range=FactorRange(*df_user_stats['app-name']), margin=(5, 5, 5, 5))
-# # Assuming p2 is your figure
-# p2.x_range = FactorRange(*df_user_stats['app-name'])  # Set the x_range for categorical data
-
-# # Customize X axis labels
-# p2.xaxis.major_label_orientation = "vertical"  # Or use radians, e.g., 1.57 for horizontal
-# p2.xaxis.major_label_text_font_size = "12pt"  # Adjust font size
-# p2.xaxis.major_label_text_color = "navy"  # Adjust font color
-# # Using NumeralTickFormatter for common formats
-# p2.yaxis.formatter = NumeralTickFormatter(format="0,0")  # Example: "1,000" for thousands
-
-# # Using PrintfTickFormatter for more control
-# p2.yaxis.formatter = PrintfTickFormatter(format="%d tokens")  # Adds "tokens" after each number
-
-
-# # Add a line renderer
-# p2.line(x=df_user_stats['app-name'], y=df_user_stats['saved-token'], line_width=5)
-
-from bokeh.models import FactorRange
 
 # Set the x_range to handle categorical data using the unique values from 'app-name'
 p2 = figure(
@@ -1043,10 +926,6 @@ profile = pn.Accordion(
     ("User", username_input),
     ("Preferences", preference_slider),
     ("Integrations", integrations_input),
-    # ('API-KEYs', api_key_select),
-    # ('Prompt Analysis', p1),
-    # ('Token Savings', p2),
-    # ('User Usage Stats', user_stats_display),
     active=[],
 )
 

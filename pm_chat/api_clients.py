@@ -1,28 +1,61 @@
-# api_clients.py
+"""
+File: api_clients.py
+Author: [Your Name]
+Date: [Current Date]
+Description:
+   This file contains the API client classes for interacting with various APIs used in the chat application.
+   The main client is the PromptMuleClient, which handles authentication, API key management, and making requests
+   to the PromptMule API for generating text, fetching similar responses, and retrieving prompt history.
+
+   The file also includes placeholder imports for other API clients such as Google's Vertex AI and OpenAI, which
+   can be integrated into the application as needed.
+
+Classes:
+   - PromptMuleClient: The main client class for interacting with the PromptMule API.
+
+Methods:
+   - PromptMuleClient:
+       - __init__: Initializes the PromptMuleClient with default configurations.
+       - login_to_promptmule: Logs in to the PromptMule API using the provided username and password.
+       - list_api_keys: Lists all API keys associated with the logged-in user's account.
+       - set_api_key: Sets the client's API key based on the provided identifier (app name or index number).
+       - extract_response: Extracts response details from the API response JSON.
+       - extract_contents_and_cache_flags: Extracts content strings and cache flags from the API response JSON.
+       - generate_text: Generates text using the PromptMule API with the specified parameters.
+       - fetch_responses_based_on_similar_prompts: Fetches similar responses based on a user's prompt using the PromptMule API.
+       - fetch_prompt_and_response_history_with_dates: Retrieves prompt history based on a given date range, number of prompts, and optional sorting parameters.
+       - get_user_stats: Retrieves user statistics and usage data for all API keys associated with the logged-in user.
+       - fetch_api_keys: Fetches the list of API keys for the logged-in user.
+       - fetch_usage_stats: Fetches usage stats for a specific API key.
+       - create_auth_headers: Helper function to create authorization headers for API requests.
+
+Dependencies:
+   - requests: Used for making HTTP requests to the PromptMule API.
+   - logging: Used for logging messages and errors.
+   - json: Used for parsing JSON responses from the API.
+
+Usage:
+   1. Create an instance of the PromptMuleClient.
+   2. Log in to the PromptMule API using the login_to_promptmule method.
+   3. Set the API key using the set_api_key method.
+   4. Use the various methods provided by the PromptMuleClient to interact with the PromptMule API, such as generating text,
+      fetching similar responses, retrieving prompt history, and getting user statistics.
+   5. Integrate other API clients (e.g., Google's Vertex AI, OpenAI) as needed for additional functionality.
+"""
 
 import requests  # for PromptMule calls
-import vertexai  # for Google calls
-from vertexai.preview.generative_models import GenerativeModel
-import openai  # for OpenAI calls
 import logging  # to keep us honest
-
-# from pm_chat import *
-# from pm_chat import load_env_vars # for PromptMule library
-from anthropic import Anthropic  # for Anthropic calls
-from anthropic import HUMAN_PROMPT, AI_PROMPT
-from pm_chat.setup_logging import logger
 import json
+from pm_chat.setup_logging import logger
 
 requests_log = logging.getLogger("requests.packages.urllib3")
 requests_log.setLevel(logging.DEBUG)
 requests_log.propagate = True
 
+
 # PromptMule API client
 class PromptMuleClient:
     def __init__(self):
-        # from pm_chat import load_env_vars # for env loader
-        # self.api_key = load_env_vars("PROMPTMULE_API_KEY")
-        
         self.logger = logging.getLogger(__name__)
         self.url = "https://api.promptmule.com"
         self.token = None
@@ -38,11 +71,11 @@ class PromptMuleClient:
         self.app_name = None
 
     def login_to_promptmule(self, username=None, password=None):
-        
+
         print("Logging in to PromptMule")
         print(f"Username: {username}")
         print(f"Password: {password}")
-        
+
         if username is None or password is None:
             self.logger.error("Login failed. Missing username or password.")
             return False
@@ -80,7 +113,7 @@ class PromptMuleClient:
             else:
                 self.logger.error("Cannot list API keys without a valid token.")
                 return {"success": False, "message": "Authentication required."}
-            
+
         list_keys_url = f"{self.url}/api-keys"
         headers = self.create_auth_headers()
 
@@ -103,7 +136,7 @@ class PromptMuleClient:
         except Exception as e:
             self.logger.error(f"Unexpected error while listing API keys: {e}")
             return {"success": False, "message": f"Unexpected error: {e}"}
-   
+
     def set_api_key(self, identifier, first_login=False):
         """
         Sets the client's API key based on the provided identifier, which can be an app name (str) or an index number (int).
@@ -123,12 +156,22 @@ class PromptMuleClient:
             self.logger.error("Username or password not set.")
             return False
         print(f"Setting API key for identifier: {identifier}")
-        
+
         # Attempt to log in and list API keys if not done already or explicitly requested
-        if first_login or self.api_key in [None, ""] or "api-keys" not in self.api_key_list:
-            login_success = self.login_to_promptmule(self.username, self.password) if first_login or self.token in [None, ""] else True
+        if (
+            first_login
+            or self.api_key in [None, ""]
+            or "api-keys" not in self.api_key_list
+        ):
+            login_success = (
+                self.login_to_promptmule(self.username, self.password)
+                if first_login or self.token in [None, ""]
+                else True
+            )
             if not login_success:
-                self.logger.error("Login failed or not attempted due to missing credentials.")
+                self.logger.error(
+                    "Login failed or not attempted due to missing credentials."
+                )
                 return False
             self.list_api_keys(self.username, self.password)
 
@@ -140,12 +183,14 @@ class PromptMuleClient:
             return False
 
         api_keys = self.api_key_list["api-keys"]
-        print('api_key retrieved:', api_keys)
+        print("api_key retrieved:", api_keys)
 
         if isinstance(identifier, int):
             # identifier is treated as app_index
             if not 0 <= identifier < len(api_keys):
-                self.logger.error(f"App Index {identifier} is out of bounds for the API key list.")
+                self.logger.error(
+                    f"App Index {identifier} is out of bounds for the API key list."
+                )
                 return False
             self.api_key = api_keys[identifier].get("api-key")
         elif isinstance(identifier, str):
@@ -204,8 +249,17 @@ class PromptMuleClient:
         except Exception as e:
             self.logger.error(f"Error extracting content and cache flags: {e}")
             return [], []  # Return empty lists as a safe fallback
-        
-    def generate_text(self, contents, model="gpt-3.5-turbo", max_tokens=100, temperature=1.0, semantic='0.1', sem_num='10', api="openai"):
+
+    def generate_text(
+        self,
+        contents,
+        model="gpt-3.5-turbo",
+        max_tokens=100,
+        temperature=1.0,
+        semantic="0.1",
+        sem_num="10",
+        api="openai",
+    ):
         """
         Generates text using the PromptMule API.
 
@@ -224,7 +278,7 @@ class PromptMuleClient:
         prompt_url = f"{self.url}/prompt"
         headers = self.headers  # Assuming self.headers is a dict
         headers["x-api-key"] = self.api_key
-        
+
         if contents is None or contents == " ":
             contents = "Respond with the word 'Hello PromptMule'"
 
@@ -235,7 +289,7 @@ class PromptMuleClient:
             "api": api,
             "temperature": temperature,
             "semantic": str(semantic),
-            "sem_num": sem_num
+            "sem_num": sem_num,
         }
 
         try:
@@ -245,9 +299,13 @@ class PromptMuleClient:
                 # response = self.promptmule_local_api_call(data)
             else:
                 self.logger.info("Using PromptMule API")
-                logger.info(f"In generate_text() Sending request to {prompt_url}\n with headers: {headers}\n and data: {data}\n")
-                #logger.info(f"max_tokens: {max_tokens}, temperature: {temperature}, semantic: {semantic}, sem_num: {sem_num}, api: {api}")
-                logger.info(f"max_tokens: {type(max_tokens)}, temperature: {type(temperature)}, semantic: {type(semantic)}, sem_num: {type(sem_num)}, api: {type(api)}")
+                logger.info(
+                    f"In generate_text() Sending request to {prompt_url}\n with headers: {headers}\n and data: {data}\n"
+                )
+                # logger.info(f"max_tokens: {max_tokens}, temperature: {temperature}, semantic: {semantic}, sem_num: {sem_num}, api: {api}")
+                logger.info(
+                    f"max_tokens: {type(max_tokens)}, temperature: {type(temperature)}, semantic: {type(semantic)}, sem_num: {type(sem_num)}, api: {type(api)}"
+                )
                 print("sending json: ", json.dumps(data, indent=4))
                 response = requests.post(url=prompt_url, json=data, headers=headers)
                 logger.info(f"Response json: {response.json()}\n")
@@ -260,57 +318,6 @@ class PromptMuleClient:
             self.logger.error(f"Error: {e}")
 
         return response.json()  # Return None in case of any errors
-
-
-    # def generate_text(self, contents, model="gpt-3.5-turbo", max_tokens=100, temperature=1.0, semantic=0.999, sem_num=10, api='openai'):
-    #     """
-    #     Generates text using the specified parameters through the PromptMule API.
-        
-    #     Parameters are as before.
-        
-    #     Returns:
-    #     - dict: Either the JSON response from the API or a structured error message.
-    #     """
-    #     print(f"Generating text using model: {model}")
-    #     if not self.token:
-    #         if self.login_to_promptmule(self.username, self.password):
-    #             print("API key not set. Setting API key for the first app.")
-    #         else:
-    #             errorMsg = "API key not set. Please login or set an API key first."
-    #             self.logger.error(errorMsg)
-    #             return {"success": False, "message": errorMsg}
-
-    #     prompt_url = f"{self.url}/prompt"
-    #     headers = {"Content-Type": "application/json", "x-api-key": self.api_key}
-    #     data = {
-    #         "model": model,
-    #         "messages": [{"role": "user", "content": contents}],
-    #         "max_tokens": max_tokens,  # Assuming this should be an integer
-    #         "api": api,
-    #         "temperature": float(temperature),  # Convert to float if it's not already
-    #         "semantic": float(semantic),  # Convert to float if it's not already
-    #         "sem_num": sem_num  # This should already be an integer, so no change needed
-    #     }
-
-    #     try:
-    #         print("Sending request to PromptMule API")
-    #         print(f"Headers: {headers}")
-    #         print(f"Data: {data}")
-    #         print(f"Endpoint: {prompt_url}")
-    #         response = requests.post(url=prompt_url, json=data, headers=headers)
-    #         print(f"Response: {response.json()}\n\n")
-    #         response.raise_for_status()
-
-    #         print(f"In generate_text: Response: {response.json()}\n\n")
-    #         return {"success": True, "response": response.json()}
-    #     except requests.HTTPError as http_err:
-    #         errorMsg = f"HTTP error occurred: {http_err}"
-    #         self.logger.error(errorMsg)
-    #         return {"success": False, "message": errorMsg, "statusCode": http_err.response.status_code}
-    #     except Exception as e:
-    #         errorMsg = f"Error generating text: {e}"
-    #         self.logger.error(errorMsg)
-    #         return {"success": False, "message": errorMsg}
 
     def fetch_responses_based_on_similar_prompts(
         self,
@@ -349,7 +356,7 @@ class PromptMuleClient:
         formatted_end_date,
         num_prompts=10,
         is_cached=True,
-        sortOrder='desc',
+        sortOrder="desc",
         sortBy=None,
     ):
         """
@@ -362,8 +369,12 @@ class PromptMuleClient:
         )
 
         # Define the endpoint for fetching prompt history
-        logger.info(f"\nFetching prompt history from PromptMule. Start Date: {formatted_start_date}, End Date: {formatted_end_date}\n")
-        print(f"Fetching prompt history from PromptMule. Start Date: {formatted_start_date}, End Date: {formatted_end_date}\n")
+        logger.info(
+            f"\nFetching prompt history from PromptMule. Start Date: {formatted_start_date}, End Date: {formatted_end_date}\n"
+        )
+        print(
+            f"Fetching prompt history from PromptMule. Start Date: {formatted_start_date}, End Date: {formatted_end_date}\n"
+        )
         endpoint = f"{self.url}/prompt"  # Corrected endpoint as per API structure
 
         # Setup the query parameters
